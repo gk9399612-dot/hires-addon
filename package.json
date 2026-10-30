@@ -1,3 +1,7 @@
 {
-  "dependencies": { "stremio-addon-sdk": "^1.6.11" }
+  "name": "hires-addon",
+  "version": "1.0.0",
+  "dependencies": {
+    "stremio-addon-sdk": "1.6.10"
+  }
 }
