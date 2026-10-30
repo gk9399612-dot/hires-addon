@@ -29,7 +29,7 @@ const MANIFEST = {
   version: "1.0.0",
   resources: ["search", "stream"],
   allowDownloads: 0,
-  checkValidLossless: 1
+  checkValidLossless: 0
 };
 
 function json(res, value) {
