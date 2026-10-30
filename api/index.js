@@ -1,44 +1,92 @@
-const { addonBuilder, getRouter } = require("stremio-addon-sdk");
+const tracks = [
+  {
+    id: "track_8f31",
+    title: "Midnight Signal",
+    artist: "Example Artist",
+    album: "Night Drive",
+    duration: 242,
+    artworkURL: "https://via.placeholder.com/300",
+    format: "flac",
+    audioQuality: "LOSSLESS"
+  },
+  {
+    id: "dolby_8f31",
+    title: "Midnight Signal",
+    artist: "Example Artist",
+    album: "Night Drive",
+    duration: 242,
+    artworkURL: "https://via.placeholder.com/300",
+    format: "dash",
+    audioQuality: "HIGH",
+    audioModes: ["DOLBY_ATMOS"],
+    atmos: true
+  }
+];
 
-const builder = new addonBuilder({
+const MANIFEST = {
   id: "dev.example.hires-addon",
-  version: "1.0.0",
   name: "Hi-Res Addon",
-  resources: ["search","stream"],
-  types: ["music"],
-  idPrefixes: ["track_","dolby_"],
-  catalogs: [],
+  version: "1.0.0",
+  resources: ["search", "stream"],
   allowDownloads: 0,
   checkValidLossless: 1
-});
+};
 
-builder.defineSearchHandler(async (args) => {
-  const q = (args.extra.search || "").toLowerCase();
-  if (!q.includes("midnight")) return { metas: [] };
-  return {
-    metas: [
-      { id: "track_8f31", type: "music", name: "Midnight Signal", poster: "https://via.placeholder.com/300" },
-      { id: "dolby_8f31", type: "music", name: "Midnight Signal [ATMOS]", poster: "https://via.placeholder.com/300" }
-    ]
-  };
-});
+function json(res, value) {
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.end(JSON.stringify(value));
+}
 
-builder.defineStreamHandler(async (args) => {
-  if (args.id === "track_8f31") {
-    return { streams: [{ title: "FLAC 24/96", url: "https://audio.example/media/track_8f31.flac", behaviorHints: { notWebReady: true } }] };
+module.exports = async (req, res) => {
+  const url = new URL(req.url, "https://" + req.headers.host);
+
+  if (url.pathname === "/manifest.json" || url.pathname === "/" || url.pathname === "/api" || url.pathname === "/api/index.js") {
+    return json(res, MANIFEST);
   }
-  if (args.id === "dolby_8f31") {
-    return { streams: [{ title: "Dolby Atmos DASH", url: "https://audio.example/media/dolby_8f31", behaviorHints: { notWebReady: true } }] };
+
+  if (url.pathname === "/search") {
+    const q = (url.searchParams.get("q") || "").toLowerCase();
+    const filtered = tracks.filter(t => 
+      [t.title, t.artist, t.album].join(" ").toLowerCase().includes(q)
+    );
+    return json(res, { tracks: filtered });
   }
-  return { streams: [] };
-});
 
-const router = getRouter(builder.getInterface());
-
-module.exports = (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  router(req, res, () => {
+  if (url.pathname.startsWith("/stream/")) {
+    const id = decodeURIComponent(url.pathname.slice(8).replace(".json",""));
+    
+    if (id === "track_8f31") {
+      return json(res, {
+        url: "https://audio.example/media/track_8f31.flac",
+        format: "flac",
+        quality: "Lossless · 24-bit / 96 kHz",
+        codec: "flac",
+        container: "flac",
+        manifest: "none",
+        encrypted: false,
+        sampleRate: 96000,
+        bitDepth: 24
+      });
+    }
+    if (id === "dolby_8f31") {
+      return json(res, {
+        url: "https://audio.example/media/dolby_8f31",
+        format: "dash",
+        quality: "Dolby Atmos",
+        codec: "eac3-joc",
+        container: "mp4",
+        manifest: "dash",
+        sampleRate: 48000,
+        audioMode: "DOLBY_ATMOS",
+        encrypted: false
+      });
+    }
     res.statusCode = 404;
-    res.end();
-  });
+    return json(res, { error: "not found" });
+  }
+
+  res.statusCode = 404;
+  return json(res, { error: "not found" });
 };
