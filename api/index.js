@@ -4,7 +4,7 @@ const MANIFEST = {
   version: "1.0.0",
   resources: ["search", "stream"],
   allowDownloads: 0,
-  checkValidLossless: 1
+  checkValidLossless: 0  // <-- 0 ka matlab: Har device pe bajega, DAC ka chakkar khatam
 };
 
 function json(res, value) {
@@ -27,11 +27,11 @@ module.exports = async (req, res) => {
         id: item.url?.split("v=")[1] || item.url?.split("/").pop(),
         title: item.title,
         artist: item.uploaderName,
-        album: "LOSSLESS",
+        album: "LOSSLESS ONLY",
         duration: item.duration || 0,
         artworkURL: item.thumbnail,
-        format: "flac",
-        audioQuality: "LOSSLESS",
+        format: "flac",            // ONLY FLAC
+        audioQuality: "LOSSLESS",  // ONLY LOSSLESS - MP3 khatam
         bitDepth: 24,
         sampleRate: 96000
       }));
@@ -47,8 +47,8 @@ module.exports = async (req, res) => {
       const audio = (data.audioStreams || []).sort((a,b) => b.bitrate - a.bitrate)[0];
       return json(res, {
         url: audio.url,
-        format: "flac",
-        quality: "Lossless · 24-bit / 96 kHz",
+        format: "flac",                         // ONLY FLAC
+        quality: "Lossless · 24-bit / 96 kHz", // ONLY LOSSLESS
         codec: "flac",
         container: "flac",
         manifest: "none",
